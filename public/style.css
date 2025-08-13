@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    height: 100vh;
+    background-image: url(bg.svg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    font-family: 'Google Sans Code';
+    font-style: italic;
+    font-weight: 300 800;
+    font-display: swap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+}
+
+.container {
+    text-align: center;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: 600;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  margin: 0;
+}
+
+
+.card {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    backdrop-filter: blur(10px);
+    width: 300px;
+}
+
+.card h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 20px;
+    transition: border 0.2s ease;
+}
+
+input:-webkit-autofill {
+  box-shadow: 0 0 0 1000px #0a1e2d inset !important;
+  -webkit-text-fill-color: white !important;
+  border: 1px solid white !important;
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+input:focus {
+    outline: none;
+    border-color: #00c3ff;
+}
+
+.button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+button {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    background: #00c3ff;
+    color: #000;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+button:hover {
+    background: #00a8da;
+}

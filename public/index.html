@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat App</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1 class="app-title">Chat app</h1>
+
+  <div class="container">
+    <div class="card">
+      <h2>Enter your name</h2>
+      <input type="text" id="nameInput" placeholder="e.g. shinnamon">
+      <div class="button-group">
+        <button onclick="selectGroup('boy')">Boy</button>
+        <button onclick="selectGroup('girl')">Girl</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function selectGroup(group) {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return alert("Please enter your name first.");
+      window.location.href = `/chat.html?name=${name}&group=${group}`;
+    }
+  </script>
+</body>
+</html>
