@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css" />
+  <title>Chat Room</title>
+</head>
+<body class="chat-page">
+  <header class="app-header">
+    <h1><a href="/" class="home-link">Chat app</a></h1>
+  </header>
+
+  <main class="chat-layout">
+    <!-- คอลัมน์ซ้าย: ห้องสนทนา -->
+    <section class="chat-main">
+      <div class="chat-room-bar">
+        <div class="room-name" id="roomName">Room</div>
+      </div>
+
+      <div id="messages" class="messages chat-scroll"></div>
+
+      <form id="composer" class="composer" autocomplete="off">
+        <input id="messageInput" type="text" placeholder="Type here"/>
+        <button id="sendBtn" type="submit">Send</button>
+        <button id="exitBtn" type="button" class="secondary">Exit</button>
+      </form>
+    </section>
+
+    <!-- คอลัมน์ขวา: สมาชิก -->
+    <aside class="member-panel">
+      <div class="member-bar">Member</div>
+      <ul id="memberList" class="member-list"></ul>
+    </aside>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+<script>
+    const params = new URLSearchParams(location.search);
+    const userName = params.get('name');
+    const roomId   = params.get('room');
+
+    // ชื่ิอห้อง
+    document.getElementById('roomName').textContent = roomId;
+
+    const socket       = io();
+    const messagesEl   = document.getElementById('messages');
+    const memberListEl = document.getElementById('memberList');
+
+    // ===== สำคัญ: JOIN ห้องเมื่อเชื่อมต่อ =====
+    socket.on('connect', () => {
+        socket.emit('joinRoom', { userName, roomId });
+    });
+
+    // ป้องกัน XSS ง่าย ๆ
+    function escapeHTML(s){
+        return s.replace(/[&<>"']/g, m => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+        ));
+    }
+
+    // วาดข้อความ: meta (เวลา/ชื่อ) อยู่บรรทัดบน, เนื้อความอยู่ล่าง
+    function addMessageDOM({ side='left', timestamp='', sender='', message='', system=false }){
+        const wrap = document.createElement('div');
+        wrap.className = `msg ${system ? 'system' : side}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+
+        if (system) {
+        meta.innerHTML = `<span class="ts">${escapeHTML(timestamp)}</span> <b>[SYSTEM]</b> ${escapeHTML(message)}`;
+        wrap.appendChild(meta);
+        } else {
+        meta.innerHTML = `<span class="ts">${escapeHTML(timestamp)}</span> <span class="who">${escapeHTML(sender)}</span>`;
+        wrap.appendChild(meta);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = message;  // เคารพขึ้นบรรทัด/ช่องว่าง
+        wrap.appendChild(bubble);
+        }
+
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // ===== รับอีเวนต์จากเซิร์ฟเวอร์ =====
+    socket.on('systemMessage', ({ text, timestamp }) => {
+        addMessageDOM({ system:true, timestamp, message:text });
+    });
+
+    socket.on('receiveMessage', ({ userName: sender, message, timestamp }) => {
+        const side = sender === userName ? 'right' : 'left';
+        addMessageDOM({ side, timestamp, sender, message });
+    });
+
+    socket.on('roomUsers', ({ users }) => {
+        memberListEl.innerHTML = users.map(u => `<li>${escapeHTML(u)}</li>`).join('');
+    });
+
+    // ===== ส่งข้อความ =====
+    document.getElementById('composer').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('messageInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        socket.emit('sendMessage', { userName, roomId, message: msg });
+        input.value = '';
+        input.focus();
+    });
+
+    // ===== ออกจากห้อง =====
+    document.getElementById('exitBtn').addEventListener('click', () => {
+        socket.emit('leaveRoom');
+        const group = roomId.startsWith('boy') ? 'boy' : 'girl';
+        location.href = `/selectRoom?name=${encodeURIComponent(userName)}&group=${group}`;
+    });
+
+    window.addEventListener('beforeunload', () => {
+        socket.emit('leaveRoom');
+    });
+    </script>
+
+</body>
+</html>

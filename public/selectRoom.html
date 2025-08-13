@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Select Room</title>
+</head>
+<body>
+  <header class="header">
+    <h1><a href="/" class="home-link">Chat app</a></h1>
+  </header> 
+
+  <main class="room-select-container">
+    <div class="room-card">
+      <div class="room-card-header">
+        <div class="room-card-meta">
+          <h2 id="groupTitle">Server</h2>
+          <p id="welcomeText"></p>
+        </div>
+
+        <button id="addRoomBtn" class="add-room-btn">+ Add Room</button>
+      </div>
+
+      <div id="roomList" class="room-buttons"></div>
+    </div>
+  </main>
+
+  <script>
+  const params = new URLSearchParams(location.search);
+  const userName = params.get('name');
+  const group = (params.get('group') || '').toLowerCase();
+
+  const welcomeText = document.getElementById('welcomeText');
+  const groupTitle = document.getElementById('groupTitle');
+  const roomList = document.getElementById('roomList');
+  const addRoomBtn = document.getElementById('addRoomBtn');
+
+  document.title = `${group[0].toUpperCase() + group.slice(1)} Server`;
+  groupTitle.innerText = `${group[0].toUpperCase() + group.slice(1)} Server`;
+  welcomeText.innerText = `Welcome ${userName}`;
+
+  function renderRooms(rooms) {
+    roomList.innerHTML = '';
+    rooms.forEach((roomId) => {
+      const btn = document.createElement('button');
+      btn.className = 'room-btn';
+      btn.innerText = roomId;
+      btn.onclick = () => location.href =
+        `/chat.html?name=${encodeURIComponent(userName)}&room=${encodeURIComponent(roomId)}`;
+      roomList.appendChild(btn);
+    });
+  }
+
+  async function loadRooms() {
+    const res = await fetch(`/rooms?group=${encodeURIComponent(group)}`);
+    const data = await res.json();
+    renderRooms(data.rooms || []);
+  }
+
+  async function addRoom() {
+    try {
+      // ส่งทั้ง JSON body + เผื่อ fallback ผ่าน query (เพราะเซิร์ฟเวอร์รับได้ทั้งคู่)
+      const res = await fetch(`/rooms?group=${encodeURIComponent(group)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group })
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      await loadRooms();
+    } catch (err) {
+      console.error('addRoom failed:', err);
+      alert('Add room fail (เช็ค server log ด้วย)');
+    }
+  }
+
+  addRoomBtn.onclick = addRoom;
+  loadRooms();
+</script>
+
+</body>
+</html>
