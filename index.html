@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        function showGreeting() {
+            const moods = ["สดใส", "หงุดหงิด", "มีพลัง", "เบื่อหน่าย", "อบอุ่น"];
+            const index = Math.floor(Math.random() * moods.length);
+            const mood = moods[index];
+
+            const name = document.getElementById("nameInput").value;
+            const output = document.getElementById("output")
+
+            if (name) {
+                output.innerText= `สวัสดีคุณ ${name} วันนี้ดู ${mood}`;
+            } else {
+                output.innerText= `Enter your name first Idiot!!!!`;
+            }       
+        }
+    </script>
+
+    <input type="text" id="nameInput" placeholder="กรุณากรอกชื่อก่อน">
+    <button onclick="showGreeting()">Say HI</button>
+
+    <p id="output"></p>
+
+</body>
+</html>
