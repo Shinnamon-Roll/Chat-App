@@ -21,12 +21,24 @@
   </div>
 
   <script>
-    function selectGroup(group) {
-      const name = document.getElementById('nameInput').value.trim();
-      if (!name) return alert('Please enter your name first.');
-      // ไปที่ route ของเซิร์ฟเวอร์ (อย่าสะกดผิด)
-      window.location.href = `/selectRoom?name=${encodeURIComponent(name)}&group=${encodeURIComponent(group)}`;
-    }
-  </script>
+async function ensureUser(name) {
+  const res = await fetch('/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name })
+  });
+  const data = await res.json();
+  localStorage.setItem('userId', data.userId);
+  localStorage.setItem('userName', data.name);
+  return data;
+}
+
+async function selectGroup(group) {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) return alert("Please enter your name first.");
+  await ensureUser(name); // สร้าง/ล็อกอิน
+  window.location.href = `/selectRoom?name=${encodeURIComponent(name)}&group=${encodeURIComponent(group)}`;
+}
+</script>
+
 </body>
 </html>

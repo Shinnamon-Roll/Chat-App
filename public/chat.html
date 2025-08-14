@@ -7,27 +7,29 @@
   <title>Chat Room</title>
 </head>
 <body class="chat-page">
+  <!-- Header -->
   <header class="app-header">
     <h1><a href="/" class="home-link">Chat app</a></h1>
   </header>
 
+  <!-- Layout: chat (left) + member (right) -->
   <main class="chat-layout">
-    <!-- คอลัมน์ซ้าย: ห้องสนทนา -->
+    <!-- Left: chat area -->
     <section class="chat-main">
       <div class="chat-room-bar">
         <div class="room-name" id="roomName">Room</div>
       </div>
 
-      <div id="messages" class="messages chat-scroll"></div>
+      <div id="messages" class="messages"></div>
 
       <form id="composer" class="composer" autocomplete="off">
-        <input id="messageInput" type="text" placeholder="Type here"/>
+        <input id="messageInput" type="text" placeholder="Type here" />
         <button id="sendBtn" type="submit">Send</button>
         <button id="exitBtn" type="button" class="secondary">Exit</button>
       </form>
     </section>
 
-    <!-- คอลัมน์ขวา: สมาชิก -->
+    <!-- Right: members -->
     <aside class="member-panel">
       <div class="member-bar">Member</div>
       <ul id="memberList" class="member-list"></ul>
@@ -35,91 +37,142 @@
   </main>
 
   <script src="/socket.io/socket.io.js"></script>
-<script>
-    const params = new URLSearchParams(location.search);
-    const userName = params.get('name');
+  <script>
+    /* ------------------ params / state ------------------ */
+    const params   = new URLSearchParams(location.search);
     const roomId   = params.get('room');
+    const userName = localStorage.getItem('userName') || params.get('name') || 'guest';
+    const userId   = localStorage.getItem('userId') || null;
 
-    // ชื่ิอห้อง
+    if (!roomId) location.replace('/');
+
     document.getElementById('roomName').textContent = roomId;
+    document.title = `Chat Room - ${roomId}`;
 
     const socket       = io();
     const messagesEl   = document.getElementById('messages');
     const memberListEl = document.getElementById('memberList');
+    const formEl       = document.getElementById('composer');
+    const inputEl      = document.getElementById('messageInput');
 
-    // ===== สำคัญ: JOIN ห้องเมื่อเชื่อมต่อ =====
-    socket.on('connect', () => {
-        socket.emit('joinRoom', { userName, roomId });
-    });
+    /* ------------------ helpers ------------------ */
+    const esc = (s) => String(s).replace(/[&<>"']/g, m => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+    ));
+    const addRow = (node) => {
+      messagesEl.appendChild(node);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    };
 
-    // ป้องกัน XSS ง่าย ๆ
-    function escapeHTML(s){
-        return s.replace(/[&<>"']/g, m => (
-        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
-        ));
-    }
+    function addMessageDOM({ side='left', timestamp='', sender='', message='', system=false, kind='' }){
+      const wrap = document.createElement('div');
+      wrap.className = `msg ${system ? 'system' : side}`;
 
-    // วาดข้อความ: meta (เวลา/ชื่อ) อยู่บรรทัดบน, เนื้อความอยู่ล่าง
-    function addMessageDOM({ side='left', timestamp='', sender='', message='', system=false }){
-        const wrap = document.createElement('div');
-        wrap.className = `msg ${system ? 'system' : side}`;
-
+      if (system) {
         const meta = document.createElement('div');
         meta.className = 'meta';
-
-        if (system) {
-        meta.innerHTML = `<span class="ts">${escapeHTML(timestamp)}</span> <b>[SYSTEM]</b> ${escapeHTML(message)}`;
+        meta.innerHTML = `<span class="ts">${esc(timestamp)}</span> <b>[SYSTEM]</b> ${esc(message)}`;
         wrap.appendChild(meta);
-        } else {
-        meta.innerHTML = `<span class="ts">${escapeHTML(timestamp)}</span> <span class="who">${escapeHTML(sender)}</span>`;
-        wrap.appendChild(meta);
+        return addRow(wrap);
+      }
 
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        bubble.textContent = message;  // เคารพขึ้นบรรทัด/ช่องว่าง
-        wrap.appendChild(bubble);
-        }
+      // meta row
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `<span class="ts">${esc(timestamp)}</span> <span class="who">${esc(sender)}</span>`;
+      wrap.appendChild(meta);
 
-        messagesEl.appendChild(wrap);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+      // bubble
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = message;       // respects newlines/spaces
+      if (kind === 'whisper') bubble.classList.add('whisper');
+
+      wrap.appendChild(bubble);
+      addRow(wrap);
     }
 
-    // ===== รับอีเวนต์จากเซิร์ฟเวอร์ =====
+    /* ------------------ socket lifecycle ------------------ */
+    socket.on('connect', () => {
+      socket.emit('joinRoom', { userId, userName, roomId });
+    });
+
+    /* ------------------ events from server ------------------ */
+    socket.on('history', ({ history }) => {
+      history.forEach(h => {
+        if (h.kind === 'system') {
+          addMessageDOM({ system:true, timestamp:h.timestamp, message:h.text });
+        } else if (h.kind === 'emote') {
+          addMessageDOM({ system:true, timestamp:h.timestamp, message:h.text });
+        } else if (h.kind === 'whisper') {
+          const side = (h.fromName === userName) ? 'right' : 'left';
+          addMessageDOM({ side, timestamp:h.timestamp, sender:`${h.fromName} (whisper)`, message:h.text, kind:'whisper' });
+        } else {
+          const side = (h.fromName === userName) ? 'right' : 'left';
+          addMessageDOM({ side, timestamp:h.timestamp, sender:h.fromName, message:h.text });
+        }
+      });
+    });
+
     socket.on('systemMessage', ({ text, timestamp }) => {
-        addMessageDOM({ system:true, timestamp, message:text });
+      addMessageDOM({ system:true, timestamp, message:text });
     });
 
     socket.on('receiveMessage', ({ userName: sender, message, timestamp }) => {
-        const side = sender === userName ? 'right' : 'left';
-        addMessageDOM({ side, timestamp, sender, message });
+      const side = sender === userName ? 'right' : 'left';
+      addMessageDOM({ side, timestamp, sender, message });
+    });
+
+    socket.on('emoteMessage', ({ text, timestamp }) => {
+      addMessageDOM({ system:true, timestamp, message:text });
+    });
+
+    socket.on('whisper', ({ fromName, toName, message, timestamp }) => {
+      const side = (fromName === userName) ? 'right' : 'left';
+      addMessageDOM({ side, timestamp, sender:`${fromName} (whisper)`, message, kind:'whisper' });
     });
 
     socket.on('roomUsers', ({ users }) => {
-        memberListEl.innerHTML = users.map(u => `<li>${escapeHTML(u)}</li>`).join('');
+      memberListEl.innerHTML = users.map(u => `<li>${esc(u)}</li>`).join('');
     });
 
-    // ===== ส่งข้อความ =====
-    document.getElementById('composer').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const input = document.getElementById('messageInput');
-        const msg = input.value.trim();
-        if (!msg) return;
-        socket.emit('sendMessage', { userName, roomId, message: msg });
-        input.value = '';
-        input.focus();
+    socket.on('nickOk', ({ newName }) => {
+      localStorage.setItem('userName', newName);
     });
 
-    // ===== ออกจากห้อง =====
+    socket.on('nickError', ({ message }) => {
+      addMessageDOM({ system:true, timestamp:new Date().toLocaleString(), message });
+    });
+
+    /* ------------------ send / commands ------------------ */
+    formEl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const raw = inputEl.value;
+      const msg = raw.trim();
+      if (!msg) return;
+
+      if (msg.startsWith('/')) {
+        const parts = msg.split(' ');
+        if ((parts[0] === '/w' || parts[0] === '/whisper') && parts[1]) {
+          localStorage.setItem('lastWhisperTo', parts[1]);
+        }
+        socket.emit('clientCommand', { roomId, input: msg });
+      } else {
+        socket.emit('sendMessage', { userName, roomId, message: raw });
+      }
+
+      inputEl.value = '';
+      inputEl.focus();
+    });
+
+    /* ------------------ exit ------------------ */
     document.getElementById('exitBtn').addEventListener('click', () => {
-        socket.emit('leaveRoom');
-        const group = roomId.startsWith('boy') ? 'boy' : 'girl';
-        location.href = `/selectRoom?name=${encodeURIComponent(userName)}&group=${group}`;
+      socket.emit('leaveRoom');
+      const group = roomId.startsWith('boy') ? 'boy' : 'girl';
+      location.href = `/selectRoom?name=${encodeURIComponent(localStorage.getItem('userName') || userName)}&group=${group}`;
     });
 
-    window.addEventListener('beforeunload', () => {
-        socket.emit('leaveRoom');
-    });
-    </script>
-
+    window.addEventListener('beforeunload', () => socket.emit('leaveRoom'));
+  </script>
 </body>
 </html>

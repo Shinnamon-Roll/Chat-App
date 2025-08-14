@@ -270,10 +270,16 @@ body.chat-page{ overflow: hidden; }
   background: rgba(0,195,255,.12);
   border-color: rgba(0,195,255,.35);
 }
-.msg.system .meta{
-  text-align: center;
-  white-space: normal;
+/* ข้อความกระซิบ */
+.bubble.whisper{
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.25);
+  font-style: italic;
 }
+
+/* emote (/me) แสดงกึ่งกลาง เอนนิด ๆ */
+.msg.system .meta i{ opacity: .95; }
+
 
 /* แถบพิมพ์ด้านล่าง */
 .composer{
